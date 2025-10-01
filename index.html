@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerenciador de Tarefas</title>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+  /* Reset básico */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+
+  body {
+    background: #f0f2f5;
+    color: #333;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+  }
+
+  /* Card principal */
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 25px 20px;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    margin-top: 30px;
+  }
+
+  h1 {
+    text-align: center;
+    margin-bottom: 10px;
+    color: #1a237e;
+    font-size: 24px;
+  }
+
+  p.lead {
+    text-align: center;
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 20px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    background: #e3e5f1;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #555;
+    transition: all 0.3s ease;
+  }
+
+  .tab.active {
+    background: #3f51b5;
+    color: #fff;
+  }
+
+  /* Inputs e labels */
+  label {
+    display: block;
+    margin-top: 10px;
+    font-size: 14px;
+    color: #333;
+  }
+
+  input,
+  textarea,
+  select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+    border-color: #3f51b5;
+    box-shadow: 0 0 6px rgba(63, 81, 181, 0.2);
+  }
+
+  textarea {
+    resize: none;
+  }
+
+  /* Botões */
+  button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 15px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #fff;
+    font-size: 14px;
+    transition: all 0.3s ease;
+  }
+
+  button:hover {
+    opacity: 0.9;
+  }
+
+  .btn-primary {
+    background: #3f51b5;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid #3f51b5;
+    color: #3f51b5;
+  }
+
+  /* Mensagens de erro e sucesso */
+  .msg {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 14px;
+    min-height: 18px;
+    color: #d32f2f;
+    transition: color 0.3s ease;
+  }
+
+  .msg.success {
+    color: #388e3c;
+  }
+
+  /* Welcome */
+  .welcome {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 16px;
+  }
+
+  /* Lista de tarefas */
+  #taskList {
+    list-style: none;
+    margin-top: 15px;
+    padding: 0;
+  }
+
+  #taskList li {
+    background: #f5f5f5;
+    margin-bottom: 10px;
+    padding: 12px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+  }
+
+  #taskList li.completed {
+    background: #dcedc8;
+    text-decoration: line-through;
+    color: #555;
+  }
+
+  #taskList li div:first-child {
+    flex: 1;
+  }
+
+  #taskList li div:last-child {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  /* Filtros */
+  .filters {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+  }
+
+  .counter {
+    font-size: 14px;
+    color: #555;
+  }
+
+  /* Chart */
+  .chart-container {
+    margin-top: 25px;
+  }
+
+  .chart-container h2 {
+    font-size: 16px;
+    margin-bottom: 10px;
+    text-align: center;
+    color: #1a237e;
+  }
+
+  /* Esconder elementos */
+  .hidden {
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="auth-section" class="card">
+  <h1>Cadastro / Login</h1>
+  <p class="lead">Conectado ao servidor Node.js/MySQL</p>
+
+  <div class="tabs">
+    <div id="tab-login" class="tab active">Entrar</div>
+    <div id="tab-register" class="tab">Cadastrar</div>
+  </div>
+
+  <div id="pane-login">
+    <label for="login-username">Usuário</label>
+    <input id="login-username" type="text" autocomplete="username">
+    <label for="login-password">Senha</label>
+    <input id="login-password" type="password" autocomplete="current-password">
+    <button id="btn-login" class="btn-primary">Entrar</button>
+    <div id="login-msg" class="msg"></div>
+  </div>
+
+  <div id="pane-register" class="hidden">
+    <label for="reg-username">Usuário</label>
+    <input id="reg-username" type="text" autocomplete="username">
+    <label for="reg-password">Senha (mín. 6)</label>
+    <input id="reg-password" type="password" autocomplete="new-password">
+    <label for="reg-password-confirm">Confirmar senha</label>
+    <input id="reg-password-confirm" type="password">
+    <button id="btn-register" class="btn-primary">Cadastrar</button>
+    <div id="reg-msg" class="msg"></div>
+  </div>
+</div>
+
+<div id="app-section" class="card hidden">
+  <div class="welcome">
+    <p>Olá, <strong id="user-name-display"></strong> 👋</p>
+    <button id="btn-logout" class="btn-ghost">Sair</button>
+  </div>
+
+  <div class="task-form">
+    <input type="text" id="taskTitle" placeholder="Título da tarefa">
+    <textarea id="taskDescription" placeholder="Descrição"></textarea>
+    <button id="addTaskBtn" class="btn-primary">Adicionar Tarefa</button>
+    <div id="task-msg" class="msg"></div>
+  </div>
+
+  <div class="filters">
+    <select id="filterSelect">
+      <option value="all">Todas</option>
+      <option value="completed">Concluídas</option>
+      <option value="pending">Pendentes</option>
+    </select>
+    <div class="counter">
+      <span id="completedCount">Concluídas: 0</span> | 
+      <span id="pendingCount">Pendentes: 0</span>
+    </div>
+  </div>
+
+  <ul id="taskList"></ul>
+
+  <div class="chart-container">
+    <h2>Progresso das Tarefas</h2>
+    <canvas id="tasksChart"></canvas>
+  </div>
+</div>
+
+<script>
+  const BASE_URL = 'http://localhost:3002'; // URL do servidor Node.js
+
+  let currentUser = null;
+  let chart = null;
+  let tasks = [];
+
+  const authSection = document.getElementById('auth-section');
+  const appSection = document.getElementById('app-section');
+  const userDisplay = document.getElementById('user-name-display');
+  const loginMsg = document.getElementById('login-msg');
+  const regMsg = document.getElementById('reg-msg');
+  const taskMsg = document.getElementById('task-msg');
+  const tabLogin = document.getElementById('tab-login');
+  const tabRegister = document.getElementById('tab-register');
+  const paneLogin = document.getElementById('pane-login');
+  const paneRegister = document.getElementById('pane-register');
+  const taskList = document.getElementById('taskList');
+  const taskTitle = document.getElementById('taskTitle');
+  const taskDescription = document.getElementById('taskDescription');
+  const filterSelect = document.getElementById('filterSelect');
+  const completedCount = document.getElementById('completedCount');
+  const pendingCount = document.getElementById('pendingCount');
+
+  function showPane(pane){
+    paneLogin.classList.add('hidden');
+    paneRegister.classList.add('hidden');
+    tabLogin.classList.toggle('active', pane==='login');
+    tabRegister.classList.toggle('active', pane==='register');
+    if(pane==='login') paneLogin.classList.remove('hidden');
+    if(pane==='register') paneRegister.classList.remove('hidden');
+  }
+
+  tabLogin.addEventListener('click', ()=>showPane('login'));
+  tabRegister.addEventListener('click', ()=>showPane('register'));
+
+  // ---------- CADASTRO ----------
+  document.getElementById('btn-register').addEventListener('click', async ()=>{
+    const username = document.getElementById('reg-username').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const confirm = document.getElementById('reg-password-confirm').value;
+    regMsg.textContent = '';
+    regMsg.classList.remove('success');
+
+    if(!username || !password){ regMsg.textContent='Preencha todos os campos'; return; }
+    if(password.length<6){ regMsg.textContent='Senha deve ≥6 caracteres'; return; }
+    if(password !== confirm){ regMsg.textContent='Senhas não coincidem'; return; }
+
+    try{
+      const res = await fetch(`${BASE_URL}/register`,{ 
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({username,password})
+      });
+      const data = await res.json();
+      if(res.ok){
+        regMsg.textContent='Cadastro realizado!';
+        regMsg.classList.add('success');
+        setTimeout(()=>{ regMsg.textContent=''; showPane('login'); },1200);
+      } else {
+        regMsg.textContent = data.error || 'Erro ao cadastrar.';
+      }
+    }catch(err){
+      regMsg.textContent='Erro na conexão com o servidor.';
+    }
+  });
+
+  // ---------- LOGIN ----------
+  document.getElementById('btn-login').addEventListener('click', async ()=>{
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
+    loginMsg.textContent='';
+
+    if(!username || !password){ loginMsg.textContent='Preencha todos os campos'; return; }
+
+    try{
+      const res = await fetch(`${BASE_URL}/login`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({username,password})
+      });
+      const data = await res.json();
+      if(res.ok){
+        localStorage.setItem('token', data.token);
+        currentUser = username;
+        userDisplay.textContent = username;
+        authSection.classList.add('hidden');
+        appSection.classList.remove('hidden');
+        loadTasks();
+      } else {
+        loginMsg.textContent = data.error || 'Usuário ou senha inválidos.';
+      }
+    }catch(err){
+      loginMsg.textContent='Erro na conexão com o servidor.';
+    }
+  });
+
+  // ---------- LOGOUT ----------
+  document.getElementById('btn-logout').addEventListener('click', ()=>{
+    localStorage.removeItem('token');
+    currentUser = null;
+    tasks = [];
+    authSection.classList.remove('hidden');
+    appSection.classList.add('hidden');
+  });
+
+  // ---------- TAREFAS ----------
+  async function loadTasks(){
+    taskMsg.textContent = 'Carregando tarefas...';
+    try{
+      const res = await fetch(`${BASE_URL}/tasks`,{
+        headers:{'Authorization': localStorage.getItem('token')}
+      });
+      if(res.ok){
+        tasks = await res.json();
+        renderTasks();
+        taskMsg.textContent = '';
+      } else {
+        tasks = [];
+        renderTasks();
+        taskMsg.textContent = 'Erro ao carregar tarefas.';
+      }
+    }catch(err){
+      tasks = [];
+      renderTasks();
+      taskMsg.textContent = 'Erro de conexão com a API.';
+    }
+  }
+
+  document.getElementById('addTaskBtn').addEventListener('click', async ()=>{
+    const title = taskTitle.value.trim();
+    const desc = taskDescription.value.trim();
+    if(!title) return alert('Digite um título');
+
+    try{
+      const res = await fetch(`${BASE_URL}/tasks`,{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization': localStorage.getItem('token')
+        },
+        body: JSON.stringify({title,description:desc})
+      });
+      if(res.ok){
+        taskTitle.value=''; taskDescription.value='';
+        loadTasks();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Falha ao adicionar tarefa.');
+      }
+    }catch(err){
+      alert('Erro na conexão com a API.');
+    }
+  });
+
+  taskList.addEventListener('change', async e=>{
+    if(e.target.type==='checkbox'){
+      const taskId = e.target.dataset.id;
+      const completed = e.target.checked;
+      try{
+        await fetch(`${BASE_URL}/tasks/${taskId}`,{
+          method:'PATCH',
+          headers:{
+            'Content-Type':'application/json',
+            'Authorization': localStorage.getItem('token')
+          },
+          body: JSON.stringify({completed})
+        });
+        loadTasks();
+      }catch(err){ console.log(err); }
+    }
+  });
+
+  taskList.addEventListener('click', async e=>{
+    if(e.target.tagName==='BUTTON' && e.target.textContent.includes('❌')){
+      const taskId = e.target.dataset.id;
+      try{
+        await fetch(`${BASE_URL}/tasks/${taskId}`,{
+          method:'DELETE',
+          headers:{'Authorization': localStorage.getItem('token')}
+        });
+        loadTasks();
+      }catch(err){ console.log(err); }
+    }
+  });
+
+  filterSelect.addEventListener('change', renderTasks);
+
+  function renderTasks(){
+    taskList.innerHTML='';
+    const filter = filterSelect.value;
+    const filtered = tasks.filter(t=>filter==='all'?true:filter==='completed'?t.completed:!t.completed);
+
+    filtered.forEach(t=>{
+      const li = document.createElement('li');
+      li.className = t.completed ? 'completed':'';
+      li.innerHTML = `<div><strong>${t.title}</strong><br>${t.description}</div>
+        <div>
+          <input type="checkbox" data-id="${t.id}" ${t.completed?'checked':''}>
+          <button data-id="${t.id}">❌</button>
+        </div>`;
+      taskList.appendChild(li);
+    });
+    updateCounts();
+    updateChart();
+  }
+
+  function updateCounts(){
+    const completed = tasks.filter(t=>t.completed).length;
+    const pending = tasks.length - completed;
+    completedCount.textContent='Concluídas: '+completed;
+    pendingCount.textContent='Pendentes: '+pending;
+  }
+
+  function updateChart(){
+    const ctx = document.getElementById('tasksChart').getContext('2d');
+    const completed = tasks.filter(t=>t.completed).length;
+    const pending = tasks.length - completed;
+    if(chart) chart.destroy();
+    chart = new Chart(ctx,{
+      type:'doughnut',
+      data:{labels:['Concluídas','Pendentes'],datasets:[{data:[completed,pending],backgroundColor:['#3f51b5','#ff6b6b']}]},
+      options:{responsive:true}
+    });
+  }
+</script>
+</body>
+</html>
